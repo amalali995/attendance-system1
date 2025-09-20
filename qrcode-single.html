@@ -88,7 +88,32 @@
                 code: currentCode,
                 expiry: currentCodeExpiry.getTime()
             }));
-            
+
+            // إنشاء كود جديد
+function generateNewCode() {
+    const code = Math.random().toString(36).substring(2, 10).toUpperCase();
+    const expiry = Date.now() + (5 * 60 * 1000); // 5 دقائق من الآن
+    
+    const codeData = { code, expiry };
+    localStorage.setItem('currentQRCode', JSON.stringify(codeData));
+    
+    // عرض الكود
+    document.getElementById('qrcode').innerHTML = '';
+    new QRCode(document.getElementById('qrcode'), {
+        text: ${window.location.origin}${window.location.pathname}?code=${code},
+        width: 200,
+        height: 200
+    });
+    
+    document.getElementById('codeDisplay').textContent = code;
+    document.getElementById('expiryTime').textContent = new Date(expiry).toLocaleTimeString('ar-EG');
+    
+    // إعادة تحميل الصفحة كل 4 دقائق لتجنب انتهاء الصلاحية أثناء الاستخدام
+    setTimeout(() => {
+        alert("الكود على وشك الانتهاء، سيتم إنشاء كود جديد");
+        generateNewCode();
+    }, 4 * 60 * 1000);
+}
             // تحديث واجهة المستخدم
             updateQRCodeDisplay();
             
@@ -189,3 +214,4 @@
 </body>
 
 </html>
+
