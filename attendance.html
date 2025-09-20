@@ -149,32 +149,35 @@
             alert(`تم تسجيل حضور الطالب: ${student.name}`);
         }
         
-        // تحديث جدول الطلاب
-        function updateStudentsTable() {
-            const tableBody = document.querySelector('#studentsTable tbody');
-            tableBody.innerHTML = '';
-            
-            const today = new Date().toLocaleDateString('ar-EG');
-            
-            students.forEach(student => {
-                const row = document.createElement('tr');
-                
-                // البحث عن سجل الحضور للطالب لهذا اليوم
-                const attendanceRecord = attendanceRecords.find(record => 
-                    record.date === today && record.studentId === student.id);
-                
-                row.innerHTML = `
-                    <td>${student.id}</td>
-                    <td>${student.name}</td>
-                    <td>${student.class}</td>
-                    <td class="${attendanceRecord ? 'status-present' : 'status-absent'}">
-                        ${attendanceRecord ? '<i class="fas fa-check-circle"></i>' : '<i class="fas fa-times-circle"></i>'}
-                    </td>
-                    <td>${attendanceRecord ? attendanceRecord.time : 'لم يسجل'}</td>
-                `;
-                tableBody.appendChild(row);
-            });
-        }
+// تحديث جدول الطلاب
+function updateStudentsTable() {
+    const tableBody = document.querySelector('#studentsTable tbody');
+    tableBody.innerHTML = '';
+    
+    const today = new Date().toLocaleDateString('ar-EG');
+    const attendanceRecords = JSON.parse(localStorage.getItem('attendanceRecords')) || [];
+    const students = JSON.parse(localStorage.getItem('students')) || [];
+    
+    students.forEach(student => {
+        const row = document.createElement('tr');
+        
+        // البحث عن سجل الحضور للطالب لهذا اليوم
+        const attendanceRecord = attendanceRecords.find(record => 
+            record.studentId === student.id && record.date === today
+        );
+        
+        row.innerHTML = `
+            <td>${student.id}</td>
+            <td>${student.name}</td>
+            <td>${student.class}</td>
+            <td class="${attendanceRecord ? 'status-present' : 'status-absent'}">
+                ${attendanceRecord ? '<i class="fas fa-check-circle"></i>' : '<i class="fas fa-times-circle"></i>'}
+            </td>
+            <td>${attendanceRecord ? attendanceRecord.time : 'لم يسجل'}</td>
+        `;
+        tableBody.appendChild(row);
+    });
+}
         
         // تصدير البيانات إلى CSV
         function exportToCSV() {
@@ -218,4 +221,5 @@
         };
     </script>
 </body>
+
 </html>
