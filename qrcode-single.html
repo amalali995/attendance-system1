@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>كود QR - نظام الحضور</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <a href="index.html" class="back-btn">
+                <i class="fas fa-arrow-right"></i> العودة للرئيسية
+            </a>
+            <h1><i class="fas fa-qrcode"></i> كود QR الحالي</h1>
+            <div></div>
+        </div>
+        
+        <div class="info-card">
+            <i class="fas fa-info-circle"></i>
+            <p>يتم إنشاء كود QR جديد كل ساعة، الكود صالح لمدة 45 دقيقة فقط. عند مسح الكود، سيتم توجيه الطالب إلى صفحة إدخال رقم الهوية.</p>
+        </div>
+        
+        <!-- قسم كود QR في المنتصف -->
+        <div class="qr-center-container">
+            <div class="qr-center-card">
+                <h2>كود QR الحالي</h2>
+                <div class="qrcode-card">
+                    <h3 id="currentCodeTitle">كود QR الحالي</h3>
+                    
+                    <div class="qr-code-wrapper">
+                        <div id="qrcode"></div>
+                    </div>
+                    
+                    <div class="timer-large" id="timer">45:00</div>
+                    <div class="code-value-large" id="currentCodeValue"></div>
+                    <div id="codeStatus"><span class="valid">صالح للاستخدام</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="info-card">
+            <i class="fas fa-mobile-alt"></i>
+            <h3>طريقة الاستخدام:</h3>
+            <ol>
+                <li>افتح تطبيق الكاميرا أو تطبيق مسح QR Code على هاتفك</li>
+                <li>وجه الكاميرا نحو كود QR أعلاه</li>
+                <li>انقر على الرابط الذي يظهر بعد المسح</li>
+                <li>أدخل رقم الهوية في الصفحة التي تفتح</li>
+                <li>انقر على "تسجيل الحضور"</li>
+            </ol>
+        </div>
+
+        <div class="controls">
+            <button class="btn btn-primary" onclick="generateNewQRCode()">
+                <i class="fas fa-sync-alt"></i> إنشاء كود جديد الآن
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // الثوابت
+        const CODE_VALIDITY_MINUTES = 45;
+        const CODE_GENERATION_INTERVAL_MINUTES = 60;
+        
+        // المتغيرات العامة
+        let currentCode = null;
+        let currentCodeExpiry = null;
+        let codeGenerationTimer = null;
+        let codeValidityTimer = null;
+        
+        // إنشاء كود QR جديد
+        function generateNewQRCode() {
+            // تنظيف المؤقتات السابقة
+            if (codeValidityTimer) clearInterval(codeValidityTimer);
+            if (codeGenerationTimer) clearTimeout(codeGenerationTimer);
+            
+            // إنشاء رمز فريد للكود
+            const uniqueCode = `QR-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+            
+            // حفظ الكود الحالي وتاريخ انتهاء صلاحيته
+            currentCode = uniqueCode;
+            currentCodeExpiry = new Date(Date.now() + CODE_VALIDITY_MINUTES * 60 * 1000);
+            
+            localStorage.setItem('currentQRCode', JSON.stringify({
+                code: currentCode,
+                expiry: currentCodeExpiry.getTime()
+            }));
+            
+            // تحديث واجهة المستخدم
+            updateQRCodeDisplay();
+            
+            // بدء العد التنازلي لصلاحية الكود
+            startValidityCountdown();
+            
+            // جدولة إنشاء الكود التالي
+            scheduleNextCodeGeneration();
+        }
+        
+        // إنشاء رابط المسح
+        function createScanURL(code) {
+            // الحصول على عنوان URL الأساسي
+            const pageURL = window.location.href;
+            const baseURL = pageURL.substring(0, pageURL.lastIndexOf('/') + 1);
+            return `${baseURL}scan.html?code=${encodeURIComponent(code)}`;
+        }
+        
+        // تحديث عرض كود QR
+        function updateQRCodeDisplay() {
+            document.getElementById('currentCodeTitle').textContent = 'كود QR الحالي';
+            document.getElementById('currentCodeValue').textContent = currentCode;
+            
+            // إنشاء/تحديث QR Code
+            const qrcodeElement = document.getElementById('qrcode');
+            qrcodeElement.innerHTML = '';
+            
+            // إنشاء رابط المسح
+            const scanURL = createScanURL(currentCode);
+            
+            new QRCode(qrcodeElement, {
+                text: scanURL,
+                width: 200,
+                height: 200
+            });
+        }
+        
+        // بدء العد التنازلي لصلاحية الكود
+        function startValidityCountdown() {
+            const timerElement = document.getElementById('timer');
+            const statusElement = document.getElementById('codeStatus');
+            
+            codeValidityTimer = setInterval(() => {
+                const now = new Date();
+                const timeLeft = currentCodeExpiry - now;
+                
+                if (timeLeft <= 0) {
+                    clearInterval(codeValidityTimer);
+                    timerElement.textContent = "00:00";
+                    statusElement.innerHTML = '<span class="expired">منتهي الصلاحية</span>';
+                } else {
+                    const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+                    const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
+                    
+                    timerElement.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                }
+            }, 1000);
+        }
+        
+        // جدولة إنشاء الكود التالي
+        function scheduleNextCodeGeneration() {
+            const nextGenerationTime = new Date(Date.now() + CODE_GENERATION_INTERVAL_MINUTES * 60 * 1000);
+            
+            codeGenerationTimer = setTimeout(() => {
+                generateNewQRCode();
+            }, CODE_GENERATION_INTERVAL_MINUTES * 60 * 1000);
+        }
+        
+        // التحقق من وجود كود حالٍ صالح
+        function checkForValidCode() {
+            const storedCode = localStorage.getItem('currentQRCode');
+            
+            if (storedCode) {
+                const codeData = JSON.parse(storedCode);
+                const now = new Date();
+                
+                if (now.getTime() < codeData.expiry) {
+                    // الكود لا يزال صالحاً
+                    currentCode = codeData.code;
+                    currentCodeExpiry = new Date(codeData.expiry);
+                    updateQRCodeDisplay();
+                    startValidityCountdown();
+                    scheduleNextCodeGeneration();
+                    return true;
+                }
+            }
+            
+            // لا يوجد كود صالح، إنشاء كود جديد
+            generateNewQRCode();
+            return false;
+        }
+        
+        // تهيئة الصفحة عند التحميل
+        window.onload = function() {
+            checkForValidCode();
+        };
+    </script>
+</body>
+</html>
