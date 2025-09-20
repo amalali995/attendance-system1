@@ -20,7 +20,7 @@
         
         <div class="info-card">
             <i class="fas fa-info-circle"></i>
-            <p>يتم إنشاء كود QR جديد كل ساعة، الكود صالح لمدة 45 دقيقة فقط. عند مسح الكود، سيتم توجيه الطالب إلى صفحة إدخال رقم الهوية.</p>
+            <p>يتم إنشاء كود QR جديد كل ساعة، الكود صالح لمدة 30 دقيقة فقط. عند مسح الكود، سيتم توجيه الطالب إلى صفحة إدخال رقم الهوية.</p>
         </div>
         
         <!-- قسم كود QR في المنتصف -->
@@ -34,7 +34,7 @@
                         <div id="qrcode"></div>
                     </div>
                     
-                    <div class="timer-large" id="timer">45:00</div>
+                    <div class="timer-large" id="timer">30:00</div>
                     <div class="code-value-large" id="currentCodeValue"></div>
                     <div id="codeStatus"><span class="valid">صالح للاستخدام</span></div>
                 </div>
@@ -62,7 +62,7 @@
 
     <script>
         // الثوابت
-        const CODE_VALIDITY_MINUTES = 45;
+        const CODE_VALIDITY_MINUTES = 30;
         const CODE_GENERATION_INTERVAL_MINUTES = 60;
         
         // المتغيرات العامة
@@ -187,4 +187,5 @@
         };
     </script>
 </body>
+
 </html>
