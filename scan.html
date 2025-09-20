@@ -3,32 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>تسجيل الحضور </title>
+    <title>تسجيل الحضور</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="container">
-        <div class="logo">
-            <i class="fas fa-user-graduate"></i>
-        </div>
-        <h1> WELCOM 😊 </h1>
-        <p class="welcome-message">Please Enter Your ID Number</p>
-        
-        <div class="form-group">
-            <label for="studentId"> ID : </label>
-            <input type="text" id="studentId" placeholder=" Enter your ID number">
-        </div>
-        
-        <button class="btn btn-primary" onclick="recordAttendance()">
-            <i class="fas fa-check"></i> تسجيل الحضور
-        </button>
-        
-        <div id="attendanceResult" class="result-message"></div>
-        
-        <div class="info-box">
-            <i class="fas fa-info-circle"></i>
-            <p>يجب أن تكون مسجلاً في النظام مسبقاً لتسجيل الحضور</p>
+    <div class="scan-container">
+        <div class="scan-card">
+            <div class="scan-logo">
+                <i class="fas fa-user-graduate"></i>
+            </div>
+            <h1 class="scan-title"> WELCOM 😊</h1>
+            <p class="scan-message"> Please Enter Your ID Number </p>
+            
+            <div class="scan-form">
+                <label for="studentId"> ID :</label>
+                <input type="text" id="studentId" placeholder="Enter your ID number">
+            </div>
+            
+            <button class="scan-btn" onclick="recordAttendance()">
+                <i class="fas fa-check"></i> تسجيل الحضور
+            </button>
+            
+            <div id="attendanceResult" class="scan-result"></div>
+            
+            <div class="scan-info">
+                <i class="fas fa-info-circle"></i>
+                <p>يجب أن تكون مسجلاً في النظام مسبقاً لتسجيل الحضور</p>
+            </div>
         </div>
     </div>
 
@@ -43,5 +45,126 @@
         function isValidCode(code) {
             if (!code) return false;
             
-            // التحقق من الكود المح
+            // التحقق من الكود المحفوظ في localStorage
+            const storedCode = localStorage.getItem('currentQRCode');
+            if (storedCode) {
+                const codeData = JSON.parse(storedCode);
+                if (code === codeData.code) {
+                    // التحقق من انتهاء الصلاحية
+                    return Date.now() < codeData.expiry;
+                }
+            }
+            
+            return false;
+        }
+        
+        // تسجيل الحضور
+        function recordAttendance() {
+            const studentId = document.getElementById('studentId').value;
+            const scannedCode = getScannedCode();
+            const resultElement = document.getElementById('attendanceResult');
+            
+            if (!studentId) {
+                resultElement.innerHTML = '<span class="scan-error">يرجى إدخال رقم الهوية</span>';
+                return;
+            }
+            
+            if (!scannedCode) {
+                resultElement.innerHTML = '<span class="scan-error">كود QR غير صالح</span>';
+                return;
+            }
+            
+            // التحقق من صحة الكود
+            if (!isValidCode(scannedCode)) {
+                resultElement.innerHTML = '<span class="scan-error">كود QR غير صالح أو منتهي الصلاحية</span>';
+                return;
+            }
+            
+            // تحميل بيانات الطلاب
+            const students = JSON.parse(localStorage.getItem('students')) || [];
+            
+            // البحث عن الطالب
+            const student = students.find(s => s.id === studentId);
+            if (!student) {
+                resultElement.innerHTML = '<span class="scan-error">رقم الهوية غير مسجل</span>';
+                return;
+            }
+            
+            // التحقق إذا كان الطالب سجل حضوره اليوم
+            const now = new Date();
+            const today = now.toLocaleDateString('ar-EG');
+            let attendanceRecords = JSON.parse(localStorage.getItem('attendanceRecords')) || [];
+            
+            const alreadyRegistered = attendanceRecords.some(record => 
+                record.studentId === studentId && record.date === today
+            );
+            
+            if (alreadyRegistered) {
+                resultElement.innerHTML = '<span class="scan-error">لقد سجلت حضورك مسبقاً اليوم</span>';
+                return;
+            }
+            
+            // تسجيل الحضور
+            const attendanceRecord = {
+                studentId: student.id,
+                studentName: student.name,
+                class: student.class,
+                code: scannedCode,
+                time: now.toLocaleTimeString('ar-EG'),
+                date: today,
+                timestamp: now.getTime()
+            };
+            
+            // حفظ الحضور في localStorage
+            attendanceRecords.push(attendanceRecord);
+            localStorage.setItem('attendanceRecords', JSON.stringify(attendanceRecords));
+            
+            // عرض رسالة النجاح
+            resultElement.innerHTML = `<span class="scan-success">تم تسجيل حضور الطالب ${student.name} بنجاح</span>`;
+            
+            // تفريغ الحقل
+            document.getElementById('studentId').value = '';
+            
+            // إخفاء الرسالة بعد 5 ثوان
+            setTimeout(() => {
+                resultElement.innerHTML = '';
+            }, 5000);
+        }
+        
+        // تهيئة الصفحة عند التحميل
+        window.onload = function() {
+            const scannedCode = getScannedCode();
+            
+            if (!scannedCode) {
+                document.getElementById('attendanceResult').innerHTML = '<span class="scan-error">كود QR غير صالح</span>';
+                return;
+            }
+            
+            // التحقق من صحة الكود
+            if (!isValidCode(scannedCode)) {
+                document.getElementById('attendanceResult').innerHTML = '<span class="scan-error">كود QR منتهي الصلاحية</span>';
+                return;
+            }
+            
+            // منع الوصول إلى عناصر التحكم
+            document.addEventListener('keydown', function(e) {
+                // منع F12 (أدوات المطورين)
+                if (e.key === 'F12') {
+                    e.preventDefault();
+                }
+                // منع Ctrl+Shift+I / Ctrl+U / Ctrl+Shift+C
+                if (e.ctrlKey && e.shiftKey && e.key === 'I') e.preventDefault();
+                if (e.ctrlKey && e.shiftKey && e.key === 'C') e.preventDefault();
+                if (e.ctrlKey && e.key === 'U') e.preventDefault();
+            });
+            
+            // منع النقر بزر الماوس الأيمن
+            document.addEventListener('contextmenu', function(e) {
+                e.preventDefault();
+            });
+        };
+    </script>
+</body>
+</html>
+
 
