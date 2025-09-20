@@ -3,68 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>تسجيل الحضور - مسح الكود</title>
+    <title>تسجيل الحضور </title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
-    <style>
-        /* أنماط إضافية للجوال */
-        .mobile-optimized {
-            max-width: 100%;
-            overflow-x: hidden;
-        }
-        
-        .mobile-form {
-            padding: 15px;
-        }
-        
-        .mobile-form input {
-            font-size: 16px; /* منع التكبير في iOS */
-        }
-    </style>
 </head>
-<body class="mobile-optimized">
+<body>
     <div class="container">
-        <div class="header">
-            <a href="index.html" class="back-btn">
-                <i class="fas fa-arrow-right"></i> العودة للرئيسية
-            </a>
-            <h1><i class="fas fa-qrcode"></i> تسجيل الحضور</h1>
-            <div></div>
+        <div class="logo">
+            <i class="fas fa-user-graduate"></i>
+        </div>
+        <h1> WELCOM 😊 </h1>
+        <p class="welcome-message">Please Enter Your ID Number</p>
+        
+        <div class="form-group">
+            <label for="studentId"> ID : </label>
+            <input type="text" id="studentId" placeholder=" Enter your ID number">
         </div>
         
-        <div class="info-card">
+        <button class="btn btn-primary" onclick="recordAttendance()">
+            <i class="fas fa-check"></i> تسجيل الحضور
+        </button>
+        
+        <div id="attendanceResult" class="result-message"></div>
+        
+        <div class="info-box">
             <i class="fas fa-info-circle"></i>
-            <p id="infoText">يرجى إدخال رقم الهوية لتسجيل الحضور</p>
+            <p>يجب أن تكون مسجلاً في النظام مسبقاً لتسجيل الحضور</p>
         </div>
-        
-        <div class="attendance-form mobile-form">
-            <h2>تسجيل الحضور</h2>
-            <div class="form-group">
-                <label for="studentId">رقم الهوية:</label>
-                <input type="text" id="studentId" placeholder="أدخل رقم الهوية" autocomplete="off">
-            </div>
-            
-            <button class="btn btn-primary" onclick="recordAttendance()">
-                <i class="fas fa-check"></i> تسجيل الحضور
-            </button>
-            
-            <div id="attendanceResult" class="result-message"></div>
-        </div>
-
-        <div class="info-card" id="codeInfo" style="display: none;">
-            <i class="fas fa-qrcode"></i>
-            <p id="codeInfoText"></p>
-        </div>
-
-<!--         <div class="info-card">
-            <i class="fas fa-lightbulb"></i>
-            <h3>إذا لم يفتح الرابط تلقائياً:</h3>
-            <ol>
-                <li>انسخ الرابط الظاهر بعد المسح</li>
-                <li>الصقه في متصفحك</li>
-                <li>أدخل رقم الهوية واضغط على تسجيل الحضور</li>
-            </ol>
-        </div> -->
     </div>
 
     <script>
@@ -78,117 +43,5 @@
         function isValidCode(code) {
             if (!code) return false;
             
-            // التحقق من الكود المحفوظ في localStorage
-            const storedCode = localStorage.getItem('currentQRCode');
-            if (storedCode) {
-                const codeData = JSON.parse(storedCode);
-                if (code === codeData.code) {
-                    // التحقق من انتهاء الصلاحية
-                    return Date.now() < codeData.expiry;
-                }
-            }
-            
-            return false;
-        }
-        
-        // تسجيل الحضور
-        function recordAttendance() {
-            const studentId = document.getElementById('studentId').value;
-            const scannedCode = getScannedCode();
-            const resultElement = document.getElementById('attendanceResult');
-            
-            if (!studentId) {
-                resultElement.innerHTML = '<span class="error">يرجى إدخال رقم الهوية</span>';
-                return;
-            }
-            
-            if (!scannedCode) {
-                resultElement.innerHTML = '<span class="error">كود QR غير صالح</span>';
-                return;
-            }
-            
-            // التحقق من صحة الكود
-            if (!isValidCode(scannedCode)) {
-                resultElement.innerHTML = '<span class="error">كود QR غير صالح أو منتهي الصلاحية</span>';
-                return;
-            }
-            
-            // تحميل بيانات الطلاب
-            const students = JSON.parse(localStorage.getItem('students')) || [];
-            
-            // البحث عن الطالب
-            const student = students.find(s => s.id === studentId);
-            if (!student) {
-                resultElement.innerHTML = '<span class="error">رقم الهوية غير مسجل</span>';
-                return;
-            }
-            
-            // التحقق إذا كان الطالب سجل حضوره اليوم
-            const now = new Date();
-            const today = now.toLocaleDateString('ar-EG');
-            const attendanceRecords = JSON.parse(localStorage.getItem('attendanceRecords')) || [];
-            
-            const alreadyRegistered = attendanceRecords.some(record => 
-                record.studentId === studentId && record.date === today
-            );
-            
-            if (alreadyRegistered) {
-                resultElement.innerHTML = '<span class="error">لقد سجلت حضورك مسبقاً اليوم</span>';
-                return;
-            }
-            
-            // تسجيل الحضور
-            const attendanceRecord = {
-                studentId: student.id,
-                studentName: student.name,
-                class: student.class,
-                code: scannedCode,
-                time: now.toLocaleTimeString('ar-EG'),
-                date: today,
-                timestamp: now.getTime()
-            };
-            
-            // حفظ الحضور في localStorage
-            attendanceRecords.push(attendanceRecord);
-            localStorage.setItem('attendanceRecords', JSON.stringify(attendanceRecords));
-            
-            // عرض رسالة النجاح
-            resultElement.innerHTML = <span class="success">تم تسجيل حضور الطالب ${student.name} بنجاح</span>;
-            
-            // تفريغ الحقل
-            document.getElementById('studentId').value = '';
-            
-            // إخفاء الرسالة بعد 3 ثوان
-            setTimeout(() => {
-                resultElement.innerHTML = '';
-            }, 3000);
-        }
-        
-        // تهيئة الصفحة عند التحميل
-        window.onload = function() {
-            const scannedCode = getScannedCode();
-            const infoText = document.getElementById('infoText');
-            const codeInfo = document.getElementById('codeInfo');
-            const codeInfoText = document.getElementById('codeInfoText');
-            
-            if (!scannedCode) {
-                infoText.innerHTML = 'لم يتم العثور على كود QR صالح. يرجى المسح مرة أخرى.';
-                document.getElementById('attendanceResult').innerHTML = '<span class="error">كود QR غير صالح</span>';
-                return;
-            }
-            
-            // التحقق من صحة الكود
-            if (!isValidCode(scannedCode)) {
-                infoText.innerHTML = 'كود QR منتهي الصلاحية. يرجى المسح مرة أخرى.';
-                document.getElementById('attendanceResult').innerHTML = '<span class="error">كود QR منتهي الصلاحية</span>';
-                return;
-            }
-            
-            infoText.innerHTML =` يرجى إدخال رقم الهوية لتسجيل الحضور.`;
-            codeInfo.style.display = 'block';
-            codeInfoText.innerHTML =` الكود الممسوح: <strong>${scannedCode}</strong>`;
-        };
-    </script>
-</body>
+            // التحقق من الكود المح
 
-</html>
