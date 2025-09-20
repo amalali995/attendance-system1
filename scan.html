@@ -13,11 +13,11 @@
             <div class="scan-logo">
                 <i class="fas fa-user-graduate"></i>
             </div>
-            <h1 class="scan-title">😊 WELCOM </h1>
-            <p class="scan-message"> Please Enter Your ID Number </p>
+            <h1 class="scan-title"> 😊 WELCOM </h1>
+            <p class="scan-message">Please Enter Your ID Number</p>
             
             <div class="scan-form">
-                <label for="studentId"> ID :</label>
+                <label for="studentId">ID :</label>
                 <input type="text" id="studentId" placeholder="Enter your ID number">
             </div>
             
@@ -41,18 +41,31 @@
             return urlParams.get('code');
         }
         
-        // التحقق من صحة الكود
+        // التحقق من صحة الكود (الإصدار المصحح)
         function isValidCode(code) {
             if (!code) return false;
             
             // التحقق من الكود المحفوظ في localStorage
             const storedCode = localStorage.getItem('currentQRCode');
-            if (storedCode) {
+            if (!storedCode) return false;
+            
+            try {
                 const codeData = JSON.parse(storedCode);
+                
+                // التحقق من تطابق الكود وانتهاء الصلاحية
                 if (code === codeData.code) {
-                    // التحقق من انتهاء الصلاحية
-                    return Date.now() < codeData.expiry;
+                    const now = Date.now();
+                    if (now < codeData.expiry) {
+                        return true; // الكود صالح
+                    } else {
+                        // حذف الكود المنتهي الصلاحية
+                        localStorage.removeItem('currentQRCode');
+                        return false;
+                    }
                 }
+            } catch (e) {
+                console.error("خطأ في تحليل بيانات الكود:", e);
+                return false;
             }
             
             return false;
@@ -171,6 +184,3 @@
     </script>
 </body>
 </html>
-
-
-
